@@ -73,7 +73,7 @@ async function saveJournals() {
 
 app.get('/', async function (req, res) {
   try {
-    let indexHTML = await fs.readFile(path.join(__dirname, 'index.html'), 'utf8');
+    let indexHTML = await fs.readFile(path.join(__dirname, '/static/index.html'), 'utf8');
     indexHTML = indexHTML.replace("<!--journal count-->", journals.prompts.length.toString());
     if (journals.prompts.length > 0) {
       indexHTML = indexHTML.replace("<!--last count-->", journals.prompts[journals.prompts.length - 1].date);
@@ -95,7 +95,7 @@ app.get('/write', function (req, res) {
 app.get('/journals', async function (req, res) {
   try {
     if (Object.keys(journals).length === 0) await loadJournals();
-    const html = await fs.readFile(path.join(__dirname, 'journals.html'), 'utf8');
+    const html = await fs.readFile(path.join(__dirname, '/static/journals.html'), 'utf8');
 
     console.log("Fetching stories...");
     fetchStoriesAsync(journals.prompts)
@@ -152,7 +152,7 @@ app.get('/write/:id', async function (req, res) {
   const promptId = req.params.id;
   if (Object.keys(journals).length === 0) await loadJournals();
   const prompt = journals.prompts.find(prompt => prompt.id === promptId);
-  const html = await fs.readFile(path.join(__dirname, 'write.html'), 'utf8');
+  const html = await fs.readFile(path.join(__dirname, '/static/write.html'), 'utf8');
   const renderedHtml = prompt ? html.replace('<textarea id="diary" placeholder="just type..." spellcheck="false"></textarea>', `<textarea id="diary" placeholder="just type..." spellcheck="false">${prompt.date + "\n\n" + prompt.prompt}</textarea>`) : html;
   res.send(renderedHtml);
 });
