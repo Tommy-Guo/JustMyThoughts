@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+        <link rel="stylesheet" href="../resources/styles/styles.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+    </head>
+
+    <body class=".roboto-mono-100">
+        <div class="header top left">
+            <a href="/"><i class="fa-solid fa-angle-left"></i></a>
+        </div>
+        <div class="header top right">
+            <span><i id="download" class="fa-solid fa-download"></i></span>
+            <span><i id="save" class="fa-solid fa-floppy-disk "></i></span>
+            <span><i id="import" class="fa-solid fa-folder-open"></i></span>
+        </div>
+        <center>
+            <textarea id="diary" placeholder="just type..." spellcheck="false"></textarea>
+        </center>
+        <div class="footer bottom right">
+            <span id="content-data">0w 0c</span>
+        </div>
+
+        <div id="popup">
+            gnfu4w5nv4u58ignvuierngui45hge4u5yigbn
+        </div>
+
+        <script>
+            $(document).ready(function () {
+                if (!$("#diary").val()) {
+                    $('#diary').text(getCurrentDate());
+                }
+
+                updateCounter();
+
+                $('#import').click(function () {
+                    var input = $('<input>').attr('type', 'file');
+
+                    input.on('change', function (e) {
+                        var file = e.target.files[0];
+                        var reader = new FileReader();
+
+                        reader.readAsText(file);
+
+                        reader.onload = function () {
+                            var text = reader.result;
+                            $('#diary').val(text);
+                            updateCounter(); // Update counter after setting the textarea value
+                        };
+
+                        reader.onerror = function () {
+                            console.error('Error reading the file');
+                        };
+                    });
+
+                    input.click();
+                });
+
+                $('#download').click(function () {
+                    console.log("download test");
+                });
+
+                $('#save').click(function () {
+                    let dataText = $('#diary').val();
+                    let date = "";
+                    let promptText = "";
+                    let storyText = "";
+
+                    let dateRegex = /^(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(st|nd|rd|th)\s+(\d{4})/i;
+                    let matches = dataText.match(dateRegex);
+
+                    if (matches) {
+                        date = matches[0];
+                        promptText = dataText.substring(matches[0].length).trim();
+                    }
+
+                    // Generate random ID
+                    let id = generateRandomId();
+
+                    const newPrompt = { id, date, prompt: promptText, story: storyText };
+
+                    // $.ajax({
+                    //     url: '/write/save',
+                    //     method: 'POST',
+                    //     contentType: 'application/json',
+                    //     data: JSON.stringify(newPrompt),
+                    //     success: triggerPopup(`Saved: ${id}`),
+                    //     error: triggerPopup(`Error, Prompt could not be saved.`)
+                    // });
+                    $.ajax({
+                        url: '/write/save',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(newPrompt),
+                        success: function (response) {
+                            triggerPopup(`Saved: ${id}`);
+                            launch_toast();
+                        },
+                        error: function () {
+                            triggerPopup('Error, Prompt could not be saved.');
+                            launch_toast();
+                        }
+                    });
+                });
+
+
+                $('#diary').on('input change keyup paste selectionchange propertychange', updateCounter);
+            });
+
+            function getCurrentDate() {
+                const date = new Date();
+                const day = date.getDate();
+                const month = date.toLocaleString('default', { month: 'long' });
+                const year = date.getFullYear();
+                let suffix = "";
+                if (day === 1 || day === 21 || day === 31) {
+                    suffix = "st";
+                } else if (day === 2 || day === 22) {
+                    suffix = "nd";
+                } else if (day === 3 || day === 23) {
+                    suffix = "rd";
+                } else {
+                    suffix = "th";
+                }
+                return `${month} ${day}${suffix} ${year}\n\n`.toLowerCase();
+            }
+
+            function updateCounter() {
+                let words = $('#diary').val();
+                let wordCount = words.split(/\s+/).filter(word => word !== "").length;
+                let charCount = words.length;
+                $('#content-data').html(`${wordCount}w ${charCount}c`);
+            }
+
+            function generateRandomId() {
+                // Generate a random ID
+                return Math.random().toString(36).substr(2, 9);
+            }
+
+            function launch_toast() {
+                var x = document.getElementById("popup")
+                x.className = "show";
+                setTimeout(function () { x.className = x.className.replace("show", ""); }, 5000);
+            }
+
+            function triggerPopup(msg) {
+                document.getElementById('popup').innerHTML = msg;
+                setTimeout(function () {
+                    document.getElementById('popup').style.display = 'block';
+                }, 500);
+            }
+        </script>
+    </body>
+
+</html>

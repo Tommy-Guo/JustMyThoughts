@@ -1,166 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap');
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
 
-        html,
-        body {
+        <link rel="stylesheet" href="resources/styles/styles.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-            height: 100%;
-            overflow: hidden;
-        }
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    </head>
 
-        #diary {
-            width: 40vw;
-            color: #fbfbfb;
-            border: 0;
-            padding: 2em;
-            outline: none;
-            resize: none;
-            height: 91.5vh;
-        }
+    <body class=".roboto-mono-100">
+        <div class="parent">
+            <div class="div1 logoFont">
+                <a href="/">JustMyThoughts</a>
+            </div>
+            <div class="div2">
+                <a href="/journals">
+                    <div class="button">
+                        <span class="larger">
+                            Journal Entries: <!--journal count-->
+                        </span>
+                        <p>
+                            Last entry: <!--last count-->
+                        </p>
+                        <!-- <i class="fa-solid fa-angle-right"></i> -->
+                    </div>
+                </a>
+            </div>
+            <div class="div3 button">
+                <a href="/write">
+                    <span class="larger">
+                        Write
+                    </span>
+                    <p>
 
-        * {
-            margin: 0;
-            padding: 0;
-            background-color: #14191e;
-            font-family: "Roboto Mono", monospace;
-            font-size: 1.04em;
-            font-weight: 400;
-        }
-
-        #footer {
-            float: right;
-            color: #25415e;
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            text-align: right;
-        }
-
-        #footer span {
-            margin: 0.3em;
-        }
-
-        i {
-            cursor: pointer;
-        }
-
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        /* Track */
-        ::-webkit-scrollbar-track {
-            box-shadow: inset 0 0 5px #14191e;
-            border-radius: 10px;
-        }
-
-        /* Handle */
-        ::-webkit-scrollbar-thumb {
-            background: #242424;
-            border-radius: 10px;
-            height: 20px;
-        }
-
-        /* Handle on hover */
-        ::-webkit-scrollbar-thumb:hover {
-            background: #2b2b2b;
-        }
-    </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-
-</head>
-
-<body class=".roboto-mono-100">
-    <center>
-        <textarea id="diary" placeholder="just type..." spellcheck="false"></textarea>
-    </center>
-    <div id="footer">
-        <p>
-            <span><i id="export" class="fa-solid fa-floppy-disk "></i></span>
-            <span><i id="import" class="fa-solid fa-folder-open"></i></span>
-        </p>
-        <span id="content-data">0w 0c</span>
-    </div>
-    <script>
-        $(document).ready(function () {
-
-            $('#diary').text(getCurrentDate());
-            updateCounter();
-
-            $('#import').click(function () {
-                var input = $('<input>').attr('type', 'file');
-
-                input.on('change', function (e) {
-                    var file = e.target.files[0];
-                    var reader = new FileReader();
-
-                    reader.readAsText(file);
-
-                    reader.onload = function () {
-                        var text = reader.result;
-                        $('#diary').val(text);
-                        updateCounter(); // Update counter after setting the textarea value
-                    };
-
-                    reader.onerror = function () {
-                        console.error('Error reading the file');
-                    };
-                });
-
-                input.click();
-            });
-
-            $('#export').click(function () {
-                var textToSave = $('#diary').val();
-                var blob = new Blob([textToSave], { type: 'text/plain' });
-                var a = $('<a>');
-                var url = window.URL.createObjectURL(blob);
-
-                a.attr('href', url);
-                a.attr('download', $('#diary').text().split('\n')[0]);
-                $('body').append(a);
-                a[0].click();
-
-                window.URL.revokeObjectURL(url);
-                a.remove();
-            });
-
-            $('#diary').on('input change keyup paste selectionchange propertychange', updateCounter);
-        });
-
-        function getCurrentDate() {
-            const date = new Date();
-            const day = date.getDate();
-            const month = date.toLocaleString('default', { month: 'long' });
-            const year = date.getFullYear();
-            let suffix = "";
-            if (day === 1 || day === 21 || day === 31) {
-                suffix = "st";
-            } else if (day === 2 || day === 22) {
-                suffix = "nd";
-            } else if (day === 3 || day === 23) {
-                suffix = "rd";
-            } else {
-                suffix = "th";
-            }
-            return `${month} ${day}${suffix} ${year}\n\n`.toLowerCase();
-        }
-
-        function updateCounter() {
-            let words = $('#diary').val();
-            let wordCount = words.split(/\s+/).filter(word => word !== "").length;
-            let charCount = words.length;
-            $('#content-data').html(`${wordCount}w ${charCount}c`);
-        }
-    </script>
-</body>
+                    </p>
+                </a>
+                <!-- <i class="fa-solid fa-angle-right"></i> -->
+            </div>
+            <div class="div4 button">test </div>
+        </div>
+    </body>
 
 </html>
