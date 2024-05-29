@@ -19,11 +19,14 @@
         <a href="/">JustMyThoughts</a>
       </div>
       <div id="journal-container" class="div5">
-        <!-- Item boxes will be added here dynamically -->
-        <!-- <a href="[URL]">
-          <div class="entry"></div>[DATE]<p>[STORY]</p>
-          </div>
-        </a> -->
+        <% prompts.forEach(prompt => { %>
+          <a href="/write/<%= prompt.id %>">
+            <div class="entry">
+              <%= prompt.date %>
+              <p><%= prompt.story %></p>
+            </div>
+          </a>
+        <% }); %>
       </div>
     </div>
   </body>

@@ -21,15 +21,13 @@
             <span><i id="import" class="fa-solid fa-folder-open"></i></span>
         </div>
         <center>
-            <textarea id="diary" placeholder="just type..." spellcheck="false"></textarea>
+            <textarea id="diary" placeholder="just type..." spellcheck="false"><%= prompt %></textarea>
         </center>
         <div class="footer bottom right">
             <span id="content-data">0w 0c</span>
         </div>
 
-        <div id="popup">
-            gnfu4w5nv4u58ignvuierngui45hge4u5yigbn
-        </div>
+        <div id="popup"></div>
 
         <script>
             $(document).ready(function () {
@@ -51,7 +49,7 @@
                         reader.onload = function () {
                             var text = reader.result;
                             $('#diary').val(text);
-                            updateCounter(); // Update counter after setting the textarea value
+                            updateCounter();
                         };
 
                         reader.onerror = function () {
@@ -80,33 +78,24 @@
                         promptText = dataText.substring(matches[0].length).trim();
                     }
 
-                    // Generate random ID
-                    let id = generateRandomId();
-
-                    const newPrompt = { id, date, prompt: promptText, story: storyText };
-
-                    // $.ajax({
-                    //     url: '/write/save',
-                    //     method: 'POST',
-                    //     contentType: 'application/json',
-                    //     data: JSON.stringify(newPrompt),
-                    //     success: triggerPopup(`Saved: ${id}`),
-                    //     error: triggerPopup(`Error, Prompt could not be saved.`)
-                    // });
-                    $.ajax({
-                        url: '/write/save',
-                        method: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify(newPrompt),
-                        success: function (response) {
-                            triggerPopup(`Saved: ${id}`);
-                            launch_toast();
-                        },
-                        error: function () {
-                            triggerPopup('Error, Prompt could not be saved.');
-                            launch_toast();
-                        }
-                    });
+                    if (promptText) {
+                        let id = generateRandomId();
+                        const newPrompt = { id, date, prompt: promptText, story: storyText };
+                        $.ajax({
+                            url: '/write/save',
+                            method: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(newPrompt),
+                            success: function (response) {
+                                launchToast(`Saved: ${id}`);
+                            },
+                            error: function () {
+                                launchToast('Error, Prompt could not be saved.');
+                            }
+                        });
+                    } else {
+                        launchToast('Error, Prompt could not be saved.');
+                    }
                 });
 
 
@@ -139,21 +128,16 @@
             }
 
             function generateRandomId() {
-                // Generate a random ID
                 return Math.random().toString(36).substr(2, 9);
             }
 
-            function launch_toast() {
-                var x = document.getElementById("popup")
-                x.className = "show";
-                setTimeout(function () { x.className = x.className.replace("show", ""); }, 5000);
-            }
-
-            function triggerPopup(msg) {
-                document.getElementById('popup').innerHTML = msg;
+            function launchToast(msg) {
+                var popup = document.getElementById('popup');
+                popup.innerHTML = msg;
+                popup.style.display = 'block';
                 setTimeout(function () {
-                    document.getElementById('popup').style.display = 'block';
-                }, 500);
+                    popup.style.display = 'none';
+                }, 1500);
             }
         </script>
     </body>

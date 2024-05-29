@@ -3,118 +3,108 @@ const dotenv = require('dotenv');
 const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
-dotenv.config(); // Load environment variables from .env file
+const ejs = require('ejs');
+dotenv.config();
+
 
 const app = express();
 
 app.use(express.json());
 app.use('/resources', express.static(path.join(__dirname, 'resources')));
 
-let journals = { prompts: [] }; 
+let journals = { prompts: [] };
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const routesRequiringJournals = ['/journals', '/write', '/write/:id'];
+const routesRequiringJournals = ['/', '/journals', '/write', '/write/:id'];
+
+const errorHandler = (err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).send('Internal Server Error');
+};
+
+app.use(errorHandler);
 
 app.use(function (req, res, next) {
   if (routesRequiringJournals.includes(req.path)) {
     loadJournals()
       .then(() => next())
-      .catch(error => {
-        console.error('Error loading journals:', error.message);
-        res.status(500).send('Failed to load journals');
-      });
+      .catch(next);
   } else {
     next();
   }
 });
 
-
 async function loadJournals() {
   try {
     const data = await fs.readFile('journals/journals.json', 'utf8');
-    if (data) {
-      journals = JSON.parse(data);
-    } else {
-      journals = { prompts: [] };
-    }
+    journals = data ? JSON.parse(data) : { prompts: [] };
     console.log('JSON data preloaded successfully!');
   } catch (error) {
     console.error('Error reading JSON file:', error);
-    throw new Error('Failed to load journals data'); 
+    throw new Error('Failed to load journals data');
   }
 }
 
 async function saveJournals() {
-  let fileHandle;
   try {
-    fileHandle = await fs.open('journals/journals.json', 'r+');
-    await fileHandle.writeFile(JSON.stringify(journals, null, 2), 'utf8');
-    
+    await fs.writeFile('journals/journals.json', JSON.stringify(journals, null, 2), 'utf8');
     console.log('Journals saved successfully!');
-  } catch (error) {
+  } catch (error) { 
     if (error.code === 'ENOENT') {
       console.warn('Journals file does not exist. Creating a new one.');
-      fileHandle = await fs.open('journals/journals.json', 'wx');
-      await fileHandle.writeFile(JSON.stringify(journals, null, 2), 'utf8');
+      await fs.mkdir('journals', { recursive: true });
+      await fs.writeFile('journals/journals.json', JSON.stringify(journals, null, 2), 'utf8');
       console.log('Journals file created successfully!');
     } else {
       console.error('Error writing JSON file:', error);
       throw error;
     }
-  } finally {
-    if (fileHandle) {
-      await fileHandle.close();
-    }
   }
 }
 
-app.get('/', async function (req, res) {
+app.get('/', async function (req, res, next) {
   try {
-    let indexHTML = await fs.readFile(path.join(__dirname, '/static/index.html'), 'utf8');
-    indexHTML = indexHTML.replace("<!--journal count-->", journals.prompts.length.toString());
-    if (journals.prompts.length > 0) {
-      indexHTML = indexHTML.replace("<!--last count-->", journals.prompts[journals.prompts.length - 1].date);
-    } else {
-      indexHTML = indexHTML.replace("<!--last count-->", "No journals available");
-    }
-    res.send(indexHTML);
+    const indexHTML = await fs.readFile(path.join(__dirname, '/static/index.html'), 'utf8');
+    const renderedHTML = ejs.render(indexHTML, {
+      journalCount: journals.prompts.length.toString(),
+      lastEntry: journals.prompts[journals.prompts.length - 1].date
+    });
+    res.send(renderedHTML);
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).send('Internal Server Error');
+    next(error);
   }
 });
 
-
-app.get('/write', function (req, res) {
-  res.sendFile(path.join(__dirname, 'write.html'));
+app.get(['/write', '/write/:id'], async function (req, res, next) {
+  try {
+    const promptId = req.params.id;
+    if (Object.keys(journals).length === 0) await loadJournals();
+    const prompt = journals.prompts.find(prompt => prompt.id === promptId);
+    const template = await fs.readFile(path.join(__dirname, '/static/write.html'), 'utf8');
+    const data = {
+      prompt: prompt ? `${prompt.date}\n\n${prompt.prompt}` : ''
+    };
+    const renderedHtml = ejs.render(template, data);
+    res.send(renderedHtml);
+  } catch (error) {
+    next(error);
+  }
 });
 
-app.get('/journals', async function (req, res) {
+app.get('/journals', async function (req, res, next) {
   try {
     if (Object.keys(journals).length === 0) await loadJournals();
-    const html = await fs.readFile(path.join(__dirname, '/static/journals.html'), 'utf8');
-
-    console.log("Fetching stories...");
     fetchStoriesAsync(journals.prompts)
       .then(async () => {
-        console.log("Stories fetched successfully.");
-        const renderedHtml = journals.prompts.map(prompt => {
-          return `<a href="/write/${prompt.id}"><div class="entry">${prompt.date}<p>${prompt.story}</p></div></a>`;
-        }).join('');
-
-        const finalHtml = html.replace('<!-- Item boxes will be added here dynamically -->', renderedHtml);
-        res.send(finalHtml);
+        const renderedHtml = await ejs.renderFile(path.join(__dirname, '/static/journals.html'), { prompts: journals.prompts });
+        res.send(renderedHtml);
       })
-      .catch(error => {
-        console.error('Error fetching stories:', error);
-        res.status(500).send('Error fetching stories');
-      });
+      .catch(next);
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).send('Internal Server Error');
+    next(error);
   }
 });
 
@@ -148,16 +138,21 @@ async function fetchStoriesAsync(prompts) {
   await saveJournals();
 }
 
-app.get('/write/:id', async function (req, res) {
-  const promptId = req.params.id;
-  if (Object.keys(journals).length === 0) await loadJournals();
-  const prompt = journals.prompts.find(prompt => prompt.id === promptId);
-  const html = await fs.readFile(path.join(__dirname, '/static/write.html'), 'utf8');
-  const renderedHtml = prompt ? html.replace('<textarea id="diary" placeholder="just type..." spellcheck="false"></textarea>', `<textarea id="diary" placeholder="just type..." spellcheck="false">${prompt.date + "\n\n" + prompt.prompt}</textarea>`) : html;
-  res.send(renderedHtml);
-});
+const { body, validationResult } = require('express-validator');
 
-app.post('/write/save', async (req, res) => {
+const validationRules = [
+  body('prompt').isString().trim().notEmpty(),
+];
+
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  next();
+};
+
+app.post('/write/save', validationRules, validate, async (req, res, next) => {
   try {
     const newPrompt = req.body;
     const promptId = req.params.id;
@@ -181,7 +176,7 @@ app.post('/write/save', async (req, res) => {
     }
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).send('Internal Server Error');
+    next(error);
   }
 });
 
@@ -189,6 +184,7 @@ function generateRandomId() {
   return Math.random().toString(36).substr(2, 9);
 }
 
-app.listen(3000, () => {
-  console.log('Server is running on port 3000');
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
